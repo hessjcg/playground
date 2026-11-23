@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tiny Book Generator — Printable Miniature Book Cover SVG Builder</title>
+  <meta name="description" content="Upload, drag-and-drop, or paste book cover images to generate print-ready 8.5x11 US Letter SVG sheets with automatic dominant-color bleed, book spines, and cut lines.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="js/constants.js"></script>
+  <script defer src="js/color.js"></script>
+  <script defer src="js/svgGenerator.js"></script>
+  <script defer src="js/sampleCovers.js"></script>
+  <script defer src="js/app.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="brand-group">
+        <div class="brand-mark" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+            <path d="M8 7h8"/>
+            <path d="M8 11h5"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="app-title">Tiny Book Generator</h1>
+          <p class="app-subtitle">8.5&Prime; &times; 11&Prime; US Letter SVG sheet composer with auto-bleed &amp; trim lines</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button id="load-samples-btn" type="button" class="btn btn-ghost">
+          Load Sample Books
+        </button>
+        <button id="clear-books-btn" type="button" class="btn btn-ghost btn-danger-subtle" hidden>
+          Clear All
+        </button>
+      </div>
+    </header>
+
+    <main class="workspace-grid">
+      <!-- Left Panel: Book Queue & Dropzone -->
+      <section class="panel panel-books" aria-label="Book Covers">
+        <div class="panel-header">
+          <h2 class="panel-heading">Book Covers</h2>
+          <span id="book-count-badge" class="meta-pill">0 titles &middot; 0 copies</span>
+        </div>
+
+        <div id="book-list" class="book-list" aria-live="polite"></div>
+
+        <div
+          id="dropzone"
+          class="dropzone"
+          role="button"
+          tabindex="0"
+          aria-label="Drop your book covers here, click to upload, or paste an image from clipboard"
+        >
+          <input
+            id="file-input"
+            type="file"
+            accept="image/*"
+            multiple
+            hidden
+          >
+          <div class="dropzone-icon" aria-hidden="true">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <p class="dropzone-title">Drop your book covers here</p>
+          <p class="dropzone-hint">
+            Drag &amp; drop images, <span class="dropzone-link">browse files</span>, or press <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>V</kbd> to paste
+          </p>
+        </div>
+
+        <div id="status-toast" class="status-toast" role="status" aria-live="polite" hidden></div>
+      </section>
+
+      <!-- Right Panel: Parameters, Preview, Download -->
+      <section class="panel panel-studio" aria-label="Template Settings and Sheet Preview">
+        <div class="params-card">
+          <div class="params-grid">
+            <div class="field-group">
+              <label for="input-cover-width" class="field-label">Cover Width</label>
+              <div class="input-with-unit">
+                <input
+                  id="input-cover-width"
+                  type="number"
+                  min="5"
+                  max="120"
+                  step="0.5"
+                  value="28"
+                  inputmode="decimal"
+                >
+                <span class="unit-tag">mm</span>
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label for="input-cover-height" class="field-label">Cover Height</label>
+              <div class="input-with-unit">
+                <input
+                  id="input-cover-height"
+                  type="number"
+                  min="5"
+                  max="240"
+                  step="0.5"
+                  value="35"
+                  inputmode="decimal"
+                >
+                <span class="unit-tag">mm</span>
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label for="input-spine-width" class="field-label">Spine Thickness</label>
+              <div class="input-with-unit">
+                <input
+                  id="input-spine-width"
+                  type="number"
+                  min="0.5"
+                  max="40"
+                  step="0.5"
+                  value="4"
+                  inputmode="decimal"
+                >
+                <span class="unit-tag">mm</span>
+              </div>
+            </div>
+          </div>
+
+          <details class="advanced-options">
+            <summary class="advanced-summary">
+              <span>Layout Options</span>
+              <span class="summary-specs">0.5&Prime; margin &middot; 0.125&Prime; bleed &middot; 0.125&Prime; gap</span>
+            </summary>
+            <div class="advanced-grid">
+              <div class="field-group">
+                <label for="select-image-fit" class="field-label">Cover Image Fit</label>
+                <select id="select-image-fit" class="select-input">
+                  <option value="meet" selected>Fit Inside (No Crop, Fill w/ Bleed)</option>
+                  <option value="slice">Crop to Fill (No Gaps)</option>
+                  <option value="stretch">Stretch to Exact Box</option>
+                </select>
+              </div>
+
+              <div class="field-group checkbox-field">
+                <label class="checkbox-label" for="toggle-cut-lines">
+                  <input id="toggle-cut-lines" type="checkbox" checked>
+                  <span>Include <code>CUT_LINES</code> layer</span>
+                </label>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <div class="preview-header">
+          <div class="preview-title-row">
+            <h2 class="panel-heading">Preview</h2>
+            <span id="grid-metrics-badge" class="meta-pill">2 cols &times; 5 rows</span>
+          </div>
+
+          <div id="page-tabs" class="page-tabs" role="tablist" aria-label="Sheet Pages" hidden></div>
+        </div>
+
+        <div id="layout-warning" class="layout-warning" role="alert" hidden></div>
+
+        <div class="preview-stage">
+          <div id="paper-sheet" class="paper-sheet" aria-label="Generated SVG Sheet Preview"></div>
+        </div>
+
+        <div class="action-footer">
+          <div class="layer-legend" aria-label="SVG Layers">
+            <span class="legend-item">
+              <span class="legend-swatch legend-swatch-book"></span>
+              <code>book_images</code>
+            </span>
+            <span class="legend-item">
+              <span class="legend-swatch legend-swatch-cut"></span>
+              <code>CUT_LINES</code>
+            </span>
+            <span class="legend-dim" id="unit-dim-summary">Unit: 66.4 &times; 41.4 mm (w/ bleed)</span>
+          </div>
+
+          <div class="download-actions">
+            <button id="download-all-btn" type="button" class="btn btn-secondary" hidden>
+              Download All Pages
+            </button>
+            <button id="download-svg-btn" type="button" class="btn btn-primary" disabled>
+              <span>Download SVG</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
